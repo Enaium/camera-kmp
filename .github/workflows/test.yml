@@ -236,7 +236,7 @@ jobs:
       - name: Install the Android platform
         run: |
           yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install \
-            "platforms;android-37" "ndk;27.0.12077973" >/dev/null
+            "platforms;android-37.0" "ndk;27.0.12077973" >/dev/null
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
