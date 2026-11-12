@@ -2,18 +2,26 @@ name: Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_npm:
+        description: Also publish @enaium/camera-kmp to npm
+        required: false
+        type: boolean
+        default: false
 
 # Publishes every artifact from the runner that can build it. Maven Central
 # coordinates are immutable, so each publication is produced by exactly one
 # runner:
 #
-#   macos-14      -> :camera-kmp metadata + jvm + macOS + iOS klibs
+#   macos-latest  -> :camera-kmp metadata + jvm + macOS + iOS klibs
 #   ubuntu-latest -> :camera-kmp linuxX64 + linuxArm64 + js + wasmJs klibs
 #   ubuntu-latest -> :camera-kmp mingwX64 klib (cross compiled with the
 #                    Kotlin/Native MinGW sysroot, which provides the Media
 #                    Foundation headers and import libraries)
 #   ubuntu-latest -> :camera-kmp android AAR + androidNative klibs
-#   ubuntu-latest -> @enaium/camera-kmp npm package
+#   ubuntu-latest -> @enaium/camera-kmp npm package (only when the
+#                    `publish_npm` dispatch input is true; the default is to
+#                    publish the npm package locally)
 #
 # The kotlinMultiplatform metadata module (published from macOS) redirects to
 # the per-target klib modules, so all of them have to be published before
@@ -30,6 +38,7 @@ on:
 #   SIGNING_PASSWORD         Passphrase of the signing key
 #   NPM_PUBLISH_KEY          npm token, written to ~/.gradle/gradle.properties
 #                            as npm.publish.key before the npm publish step
+#                            (needed only when publish_npm is true)
 
 jobs:
   publish-macos:
@@ -148,6 +157,7 @@ jobs:
 
   publish-npm:
     name: Publish the @enaium/camera-kmp npm package
+    if: ${{ inputs.publish_npm }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
