@@ -1,6 +1,6 @@
 name: Publish
 
-"on":
+on:
   workflow_dispatch:
 
 # Publishes every artifact from the runner that can build it. Maven Central
