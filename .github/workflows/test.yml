@@ -25,10 +25,6 @@ on:
 #
 # Trigger: run manually from the Actions tab.
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test-macos:
     name: Test macOS ARM64
