@@ -1,0 +1,6 @@
+headers = mediafoundation_min.h
+package = cn.enaium.camera.mediafoundation
+# mfreadwrite has no import library in the MinGW sysroot that Kotlin/Native
+# ships, so MFCreateSourceReaderFromMediaSource is resolved from the DLL at
+# runtime; linking against it here would make every consumer fail to link.
+linkerOpts = -lmf -lmfplat -lmfuuid -lole32 -luuid

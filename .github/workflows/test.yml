@@ -1,0 +1,332 @@
+name: Test
+
+"on":
+  workflow_dispatch:
+
+# Builds and tests every platform on a runner that can build it:
+#
+#   macOS ARM64 -> jvm + macOS/iOS klibs, JVM/AVFoundation tests, the H.264 and
+#                  HEVC encode/decode examples (JVM and macosArm64, headless)
+#   Linux x64   -> linuxX64/linuxArm64 klibs, JVM tests, the headless examples
+#   Linux x64   -> mingwX64 klib and example executable (cross compiled with
+#                  the MinGW sysroot Kotlin/Native ships)
+#   Linux x64   -> androidNative klibs, the Android AAR and the example APK
+#   Linux x64   -> js/wasmJs tests and the npm glue package
+#
+# No camera is available on CI runners, so the example falls back to its
+# deterministic test pattern; camera enumeration tests only require a backend,
+# not a device.
+#
+# Each job publishes its platform's artifacts to Maven Local with the same
+# signing secrets as the release workflow. This exercises the publications,
+# sources/module jars and their signatures before the tests run. The signing
+# steps use SIGNING_KEY, SIGNING_KEY_ID and SIGNING_PASSWORD and are required:
+# a missing or invalid key fails the test instead of silently skipping it.
+#
+# Trigger: run manually from the Actions tab.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-macos:
+    name: Test macOS ARM64
+    runs-on: macos-14
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build the Apple klibs
+        run: >
+          ./gradlew --no-daemon --stacktrace
+          :camera-kmp:compileKotlinMacosArm64
+          :camera-kmp:compileKotlinMacosX64
+          :camera-kmp:compileKotlinIosArm64
+          :camera-kmp:compileKotlinIosX64
+          :camera-kmp:compileKotlinIosSimulatorArm64
+
+      - name: Decode signing key
+        run: |
+          echo "$SIGNING_KEY" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/signing-key.gpg"
+
+      - name: Publish the Apple and portable artifacts to Maven Local
+        run: >
+          ./gradlew --no-daemon --rerun-tasks --stacktrace
+          -Psigning.keyId="$SIGNING_KEY_ID"
+          -Psigning.secretKeyRingFile="$RUNNER_TEMP/signing-key.gpg"
+          -Psigning.password="$SIGNING_PASSWORD"
+          :camera-kmp:publishKotlinMultiplatformPublicationToMavenLocal
+          :camera-kmp:publishJvmPublicationToMavenLocal
+          :camera-kmp:publishMacosArm64PublicationToMavenLocal
+          :camera-kmp:publishMacosX64PublicationToMavenLocal
+          :camera-kmp:publishIosArm64PublicationToMavenLocal
+          :camera-kmp:publishIosX64PublicationToMavenLocal
+          :camera-kmp:publishIosSimulatorArm64PublicationToMavenLocal
+
+      - name: Verify the local Maven signatures
+        run: |
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+
+      - name: Run JVM tests
+        run: ./gradlew --no-daemon :camera-kmp:jvmTest
+
+      - name: Run AVFoundation tests
+        run: ./gradlew --no-daemon :camera-kmp:macosArm64Test
+
+      - name: Run the H.264 example (JVM, headless)
+        run: >
+          ./gradlew --no-daemon :examples:camera-codec:jvmRun
+          --args="--headless --source synthetic --frames 60 --codec h264"
+
+      - name: Run the HEVC example (JVM, headless)
+        run: >
+          ./gradlew --no-daemon :examples:camera-codec:jvmRun
+          --args="--headless --source synthetic --frames 60 --codec hevc"
+
+      - name: Run the H.264 example (macosArm64, headless)
+        run: >
+          CAMERA_CODEC_HEADLESS=1 CAMERA_CODEC_SOURCE=synthetic CAMERA_CODEC_FRAMES=60
+          CAMERA_CODEC_CODEC=h264
+          ./gradlew --no-daemon :examples:camera-codec:runDebugExecutableMacosArm64
+
+      - name: Run the HEVC example (macosArm64, headless)
+        run: >
+          CAMERA_CODEC_HEADLESS=1 CAMERA_CODEC_SOURCE=synthetic CAMERA_CODEC_FRAMES=60
+          CAMERA_CODEC_CODEC=hevc
+          ./gradlew --no-daemon :examples:camera-codec:runDebugExecutableMacosArm64
+
+  test-linux:
+    name: Test Linux x64
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build the Linux klibs
+        run: >
+          ./gradlew --no-daemon --stacktrace
+          :camera-kmp:compileKotlinLinuxX64
+          :camera-kmp:compileKotlinLinuxArm64
+
+      - name: Decode signing key
+        run: |
+          echo "$SIGNING_KEY" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/signing-key.gpg"
+
+      - name: Publish the Linux artifacts to Maven Local
+        run: >
+          ./gradlew --no-daemon --rerun-tasks --stacktrace
+          -Psigning.keyId="$SIGNING_KEY_ID"
+          -Psigning.secretKeyRingFile="$RUNNER_TEMP/signing-key.gpg"
+          -Psigning.password="$SIGNING_PASSWORD"
+          :camera-kmp:publishLinuxX64PublicationToMavenLocal
+          :camera-kmp:publishLinuxArm64PublicationToMavenLocal
+
+      - name: Verify the local Maven signatures
+        run: |
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+
+      - name: Run JVM tests
+        run: ./gradlew --no-daemon :camera-kmp:jvmTest
+
+      - name: Run the H.264 example (JVM, headless)
+        run: >
+          ./gradlew --no-daemon :examples:camera-codec:jvmRun
+          --args="--headless --source synthetic --frames 60 --codec h264"
+
+      - name: Run the HEVC example (linuxX64, headless)
+        run: >
+          CAMERA_CODEC_HEADLESS=1 CAMERA_CODEC_SOURCE=synthetic CAMERA_CODEC_FRAMES=60
+          CAMERA_CODEC_CODEC=hevc
+          ./gradlew --no-daemon :examples:camera-codec:runDebugExecutableLinuxX64
+
+  test-windows:
+    name: Test Windows x64 (mingwX64)
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Install the MinGW cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build the mingwX64 klib and example executable
+        run: >
+          ./gradlew --no-daemon --stacktrace
+          :camera-kmp:compileKotlinMingwX64
+          :examples:camera-codec:linkDebugExecutableMingwX64
+
+      - name: Decode signing key
+        run: |
+          echo "$SIGNING_KEY" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/signing-key.gpg"
+
+      - name: Publish the mingwX64 artifact to Maven Local
+        run: >
+          ./gradlew --no-daemon --rerun-tasks --stacktrace
+          -Psigning.keyId="$SIGNING_KEY_ID"
+          -Psigning.secretKeyRingFile="$RUNNER_TEMP/signing-key.gpg"
+          -Psigning.password="$SIGNING_PASSWORD"
+          :camera-kmp:publishMingwX64PublicationToMavenLocal
+
+      - name: Verify the local Maven signatures
+        run: |
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+
+      - name: Run the common tests on the JVM
+        run: ./gradlew --no-daemon :camera-kmp:jvmTest
+
+  test-android:
+    name: Test Android (androidNative + AAR)
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Install the Android platform
+        run: |
+          yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install \
+            "platforms;android-37" "ndk;27.0.12077973" >/dev/null
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build the androidNative klibs
+        run: >
+          ./gradlew --no-daemon --stacktrace
+          :camera-kmp:compileKotlinAndroidNativeArm64
+          :camera-kmp:compileKotlinAndroidNativeArm32
+          :camera-kmp:compileKotlinAndroidNativeX64
+          :camera-kmp:compileKotlinAndroidNativeX86
+
+      - name: Assemble the Android library
+        run: ./gradlew --no-daemon :camera-kmp:assembleAndroidMain
+
+      - name: Decode signing key
+        run: |
+          echo "$SIGNING_KEY" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/signing-key.gpg"
+
+      - name: Publish the Android artifacts to Maven Local
+        run: >
+          ./gradlew --no-daemon --rerun-tasks --stacktrace
+          -Psigning.keyId="$SIGNING_KEY_ID"
+          -Psigning.secretKeyRingFile="$RUNNER_TEMP/signing-key.gpg"
+          -Psigning.password="$SIGNING_PASSWORD"
+          :camera-kmp:publishAndroidPublicationToMavenLocal
+          :camera-kmp:publishAndroidNativeArm64PublicationToMavenLocal
+          :camera-kmp:publishAndroidNativeArm32PublicationToMavenLocal
+          :camera-kmp:publishAndroidNativeX64PublicationToMavenLocal
+          :camera-kmp:publishAndroidNativeX86PublicationToMavenLocal
+
+      - name: Verify the local Maven signatures
+        run: |
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+
+      # This links libmain.so for all four ABIs and packages the APK, so it
+      # also verifies the Camera2 NDK, V4L2 and codec links.
+      - name: Assemble the example APK
+        run: ./gradlew --no-daemon :examples:camera-codec:android:assembleDebug
+
+  test-web:
+    name: Test Web (js + wasmJs)
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing key
+        run: |
+          echo "$SIGNING_KEY" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/signing-key.gpg"
+
+      - name: Publish the web artifacts to Maven Local
+        run: >
+          ./gradlew --no-daemon --rerun-tasks --stacktrace
+          -Psigning.keyId="$SIGNING_KEY_ID"
+          -Psigning.secretKeyRingFile="$RUNNER_TEMP/signing-key.gpg"
+          -Psigning.password="$SIGNING_PASSWORD"
+          :camera-kmp:publishJsPublicationToMavenLocal
+          :camera-kmp:publishWasmJsPublicationToMavenLocal
+
+      - name: Verify the local Maven signatures
+        run: |
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+
+      - name: Run the web tests
+        run: ./gradlew --no-daemon :camera-kmp:jsNodeTest :camera-kmp:wasmJsNodeTest
+
+      - name: Stage the npm glue package
+        run: ./gradlew --no-daemon :camera-kmp:assembleWebNpm
+
+      - name: Build the browser codec example (js + wasmJs)
+        run: >
+          ./gradlew --no-daemon
+          :examples:browser-camera:jsBrowserDistribution
+          :examples:browser-camera:wasmJsBrowserDistribution

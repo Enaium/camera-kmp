@@ -1,0 +1,4 @@
+headers = camera2_min.h
+headerFilter = camera/*.h media/NdkImage*.h camera2_min.h
+package = cn.enaium.camera.camera2
+linkerOpts = -lcamera2ndk -lmediandk

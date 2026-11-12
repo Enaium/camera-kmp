@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The Camera2 backend opens device cameras; apps that capture still have
+         to request the permission at runtime. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <application>
+        <!-- Registers the application context before any activity starts, so
+             the context-free cameraSystem() entry point can reach CameraManager. -->
+        <provider
+            android:name="cn.enaium.camera.CameraContextProvider"
+            android:authorities="${applicationId}.camera-kmp-context"
+            android:exported="false" />
+    </application>
+
+</manifest>

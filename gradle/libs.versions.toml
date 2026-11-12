@@ -1,0 +1,40 @@
+[versions]
+kotlin = "2.4.21"
+agp = "9.5.1"
+junit = "5.14.4"
+junit-platform = "1.14.4"
+maven-publish = "0.37.0"
+kotlinx-browser = "0.5.0"
+
+# Camera backends used by the example pipeline.
+libyuv = "1.2.0"
+x264 = "0.165.0.1"
+x265 = "4.2.0.1"
+openh264 = "2.7.0.1"
+libde265 = "1.1.3.1"
+
+# SDL3 window, renderer and Android activity host for the examples.
+sdl-kmp = "3.4.18.1"
+imgui-kmp = "1.93.0.1"
+coroutines = "1.11.0"
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit-platform" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
+
+libyuv-kmp = { module = "cn.enaium.libyuv:libyuv-kmp", version.ref = "libyuv" }
+x264-kmp = { module = "cn.enaium.x264:x264-kmp", version.ref = "x264" }
+x265-kmp = { module = "cn.enaium.x265:x265-kmp", version.ref = "x265" }
+openh264-kmp = { module = "cn.enaium.openh264:openh264-kmp", version.ref = "openh264" }
+libde265-kmp = { module = "cn.enaium.libde265:libde265-kmp", version.ref = "libde265" }
+sdl-kmp = { module = "cn.enaium.sdl:sdl-kmp", version.ref = "sdl-kmp" }
+imgui-kmp = { module = "cn.enaium.imgui:imgui-kmp", version.ref = "imgui-kmp" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
