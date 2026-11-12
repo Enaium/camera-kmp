@@ -1,6 +1,6 @@
 name: Test
 
-"on":
+on:
   workflow_dispatch:
 
 # Builds and tests every platform on a runner that can build it:
