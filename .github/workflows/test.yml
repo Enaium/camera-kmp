@@ -28,7 +28,7 @@ on:
 jobs:
   test-macos:
     name: Test macOS ARM64
-    runs-on: macos-14
+    runs-on: macos-latest
     env:
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
       SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}

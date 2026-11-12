@@ -34,7 +34,7 @@ on:
 jobs:
   publish-macos:
     name: Publish macOS / iOS klibs and metadata
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
