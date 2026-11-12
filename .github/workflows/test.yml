@@ -79,7 +79,7 @@ jobs:
 
       - name: Verify the local Maven signatures
         run: |
-          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera" -name '*.asc' -print -quit)"
 
       - name: Run JVM tests
         run: ./gradlew --no-daemon :camera-kmp:jvmTest
@@ -150,7 +150,7 @@ jobs:
 
       - name: Verify the local Maven signatures
         run: |
-          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera" -name '*.asc' -print -quit)"
 
       - name: Run JVM tests
         run: ./gradlew --no-daemon :camera-kmp:jvmTest
@@ -211,7 +211,7 @@ jobs:
 
       - name: Verify the local Maven signatures
         run: |
-          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera" -name '*.asc' -print -quit)"
 
       - name: Run the common tests on the JVM
         run: ./gradlew --no-daemon :camera-kmp:jvmTest
@@ -270,7 +270,7 @@ jobs:
 
       - name: Verify the local Maven signatures
         run: |
-          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera" -name '*.asc' -print -quit)"
 
       # This links libmain.so for all four ABIs and packages the APK, so it
       # also verifies the Camera2 NDK, V4L2 and codec links.
@@ -317,7 +317,7 @@ jobs:
 
       - name: Verify the local Maven signatures
         run: |
-          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera/camera-kmp" -name '*.asc' -print -quit)"
+          test -n "$(find "$HOME/.m2/repository/cn/enaium/camera" -name '*.asc' -print -quit)"
 
       - name: Run the web tests
         run: ./gradlew --no-daemon :camera-kmp:jsNodeTest :camera-kmp:wasmJsNodeTest
